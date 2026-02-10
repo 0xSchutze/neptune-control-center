@@ -1,0 +1,493 @@
+/* 
+ * NEPTUNE PREMIUM DESIGN SYSTEM 
+ * High-End Sci-Fi / Holographic Aesthetic
+ */
+
+:root {
+    /* --- COLOR PALETTE: DEEP & PREMIUM --- */
+    /* Primary Accent: "Electric Abyss" - A sophisticated deep cyan/teal, not generic cyan */
+    --neptune-primary: #00B4D8;
+    --neptune-primary-dim: rgba(0, 180, 216, 0.15);
+    --neptune-primary-glow: rgba(0, 180, 216, 0.4);
+
+    /* Secondary Accent: "Holographic Blue" */
+    --neptune-secondary: #48CAE4;
+
+    /* Backgrounds: "Deep Void" - Richer than black */
+    --neptune-void-bg: #030407;
+    --neptune-surface: rgba(10, 15, 30, 0.7);
+    --neptune-glass: rgba(5, 10, 20, 0.65);
+
+    /* Text */
+    --neptune-text-primary: #E0F7FA;
+    --neptune-text-secondary: #90E0EF;
+    --neptune-text-muted: #49687C;
+
+    /* --- EFFECTS --- */
+    --glass-blur: blur(8px);
+    /* OPTIMIZED: Reduced from 12px for better scroll performance */
+    --glass-border: 1px solid rgba(0, 180, 216, 0.15);
+    --glass-shadow:
+        0 4px 30px rgba(0, 0, 0, 0.5),
+        inset 0 0 20px rgba(0, 180, 216, 0.05);
+
+    --hologram-glow: 0 0 15px rgba(0, 180, 216, 0.3);
+
+    /* --- ANIMATIONS --- */
+    --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* --- ANIMATIONS --- */
+
+@keyframes spin-reverse {
+    from {
+        transform: rotate(360deg);
+    }
+
+    to {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.animate-marquee {
+    display: flex;
+    animation: marquee 20s linear infinite;
+    /* GPU Acceleration for smooth scrolling */
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+@keyframes scanline {
+    0% {
+        transform: translateY(-100%);
+    }
+
+    100% {
+        transform: translateY(100vh);
+    }
+}
+
+/* Enhanced CRT Scanline */
+.neptune-scanline {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    /* Main scan beam */
+    background: linear-gradient(to bottom,
+            rgba(0, 180, 216, 0) 50%,
+            rgba(0, 180, 216, 0.05) 50%,
+            rgba(0, 180, 216, 0) 55%);
+    background-size: 100% 4px;
+    /* Grid lines */
+    animation: scanlineScroll 0.5s linear infinite;
+}
+
+.neptune-scanline::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(18, 16, 16, 0.1);
+    opacity: 0;
+    z-index: 0;
+    animation: flicker 0.15s infinite;
+}
+
+.neptune-scanline::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    z-index: 2;
+    background-size: 100% 2px, 3px 100%;
+    pointer-events: none;
+}
+
+@keyframes scanlineScroll {
+    0% {
+        background-position: 0% 0%;
+    }
+
+    100% {
+        background-position: 0% 100%;
+    }
+}
+
+@keyframes flicker {
+    0% {
+        opacity: 0.02;
+    }
+
+    50% {
+        opacity: 0.05;
+    }
+
+    100% {
+        opacity: 0.02;
+    }
+}
+
+@keyframes materialize {
+    0% {
+        opacity: 0;
+        transform: translateY(10px) scale(0.96);
+        filter: blur(8px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes scanline-scroll {
+    0% {
+        background-position: 0% 0%;
+    }
+
+    100% {
+        background-position: 0% 100%;
+    }
+}
+
+@keyframes pulse-soft {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+@keyframes arrowPulse {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 4px var(--neptune-primary-glow));
+    }
+
+    50% {
+        filter: drop-shadow(0 0 12px var(--neptune-primary));
+    }
+}
+
+@keyframes arrowAttentionPulse {
+
+    0%,
+    100% {
+        filter: drop-shadow(0 0 8px var(--neptune-primary-glow));
+        opacity: 1;
+    }
+
+    50% {
+        filter: drop-shadow(0 0 25px var(--neptune-primary));
+        opacity: 0.8;
+    }
+}
+
+/* --- UTILITIES --- */
+
+/* OPTIMIZED: GPU-accelerated glassmorphism panel with CSS containment */
+.neptune-glass-panel {
+    background: var(--neptune-glass);
+    /* TEST: Re-enabled with Electron GPU optimizations */
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: var(--glass-border);
+    box-shadow: var(--glass-shadow);
+
+    /* GPU Acceleration & Layer Isolation */
+    transform: translateZ(0);
+    will-change: transform, opacity;
+
+    /* CSS Containment - Each panel gets its own compositing layer */
+    isolation: isolate;
+    contain: layout style paint;
+
+    /* Reduce blur for better performance on lower-end devices */
+    --glass-blur-optimized: blur(16px);
+    /* Down from 24px when needed */
+}
+
+/* No-blur variant for performance mode */
+.neptune-glass-panel.no-blur {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(5, 10, 20, 0.9);
+}
+
+.neptune-text-glow {
+    text-shadow: 0 0 10px rgba(0, 180, 216, 0.5);
+}
+
+/* OPTIMIZED: GPU-accelerated scan overlay */
+.neptune-scan-overlay {
+    background: linear-gradient(to bottom,
+            transparent 50%,
+            rgba(0, 180, 216, 0.02) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    /* GPU Acceleration */
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* OPTIMIZED: GPU-accelerated scanline */
+.neptune-scanline {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    /* Main scan beam */
+    background: linear-gradient(to bottom,
+            rgba(0, 180, 216, 0) 50%,
+            rgba(0, 180, 216, 0.05) 50%,
+            rgba(0, 180, 216, 0) 55%);
+    background-size: 100% 4px;
+    /* Grid lines */
+    animation: scanlineScroll 0.5s linear infinite;
+    /* GPU Acceleration */
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* OPTIMIZED: Custom Scrollbar with GPU acceleration */
+.neptune-scrollbar {
+    /* Containment for better scroll performance */
+    contain: content;
+    /* Prevent scroll chaining to parent */
+    overscroll-behavior: contain;
+    /* Instant scroll for scrollbar drag - no smooth animation */
+    scroll-behavior: auto;
+    /* GPU layer isolation - critical for 3D scene performance */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Optimize touch scrolling */
+    -webkit-overflow-scrolling: touch;
+}
+
+.neptune-scrollbar::-webkit-scrollbar {
+    width: 10px;
+}
+
+.neptune-scrollbar::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.neptune-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--neptune-primary-dim);
+    border-radius: 5px;
+    /* Simpler transition for better performance */
+    transition: background-color 0.15s ease;
+}
+
+.neptune-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--neptune-primary);
+}
+
+/* SimpleBar Neptune Theme - Custom scrollbar for performance */
+.simplebar-scrollbar::before {
+    background: var(--neptune-primary-dim) !important;
+    border-radius: 5px !important;
+    opacity: 0.7 !important;
+    transition: opacity 0.15s ease !important;
+}
+
+.simplebar-scrollbar.simplebar-visible::before {
+    opacity: 1 !important;
+}
+
+.simplebar-scrollbar:hover::before {
+    background: var(--neptune-primary) !important;
+}
+
+.simplebar-track.simplebar-vertical {
+    width: 12px !important;
+    right: 2px !important;
+}
+
+.simplebar-track.simplebar-vertical .simplebar-scrollbar {
+    right: 1px !important;
+    width: 10px !important;
+}
+
+.simplebar-content-wrapper {
+    /* GPU acceleration for scroll performance */
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+}
+
+/* Date Input Calendar Icon Styling - General */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(70%) sepia(50%) saturate(500%) hue-rotate(150deg) brightness(100%);
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Goals Section Date Input - Special styling */
+.goal-date-input {
+    display: flex;
+    flex-direction: column;
+}
+
+.goal-date-input::-webkit-calendar-picker-indicator {
+    margin-left: 0;
+    margin-right: -12px;
+}
+
+/* ============================================
+   NEPTUNE REACT-DATEPICKER THEME
+   ============================================ */
+
+/* Main wrapper */
+.react-datepicker-wrapper {
+    width: 100%;
+}
+
+.react-datepicker__input-container input {
+    width: 100%;
+    background: #0a0f16;
+    border: 1px solid var(--neptune-primary-dim);
+    color: var(--neptune-text-primary);
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.react-datepicker__input-container input:focus {
+    border-color: var(--neptune-primary);
+    box-shadow: 0 0 10px rgba(0, 180, 216, 0.2);
+}
+
+/* Calendar popup */
+.react-datepicker {
+    background: rgba(10, 15, 30, 0.98) !important;
+    border: 1px solid var(--neptune-primary-dim) !important;
+    border-radius: 12px !important;
+    font-family: 'Inter', sans-serif !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 180, 216, 0.15) !important;
+    overflow: hidden;
+}
+
+.react-datepicker__triangle {
+    display: none !important;
+}
+
+/* Header */
+.react-datepicker__header {
+    background: rgba(0, 180, 216, 0.1) !important;
+    border-bottom: 1px solid var(--neptune-primary-dim) !important;
+    padding: 12px !important;
+}
+
+.react-datepicker__current-month {
+    color: var(--neptune-text-primary) !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.react-datepicker__day-names {
+    margin-top: 8px !important;
+}
+
+.react-datepicker__day-name {
+    color: var(--neptune-primary) !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    width: 36px !important;
+    line-height: 36px !important;
+    text-transform: uppercase;
+}
+
+/* Days */
+.react-datepicker__month {
+    margin: 8px !important;
+}
+
+.react-datepicker__day {
+    color: var(--neptune-text-secondary) !important;
+    width: 36px !important;
+    line-height: 36px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    transition: all 0.15s !important;
+}
+
+.react-datepicker__day:hover {
+    background: var(--neptune-primary-dim) !important;
+    color: var(--neptune-text-primary) !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+    background: var(--neptune-primary) !important;
+    color: #000 !important;
+    font-weight: 700 !important;
+}
+
+.react-datepicker__day--today {
+    border: 1px solid var(--neptune-primary) !important;
+    font-weight: 600 !important;
+}
+
+.react-datepicker__day--outside-month {
+    color: var(--neptune-text-muted) !important;
+    opacity: 0.4;
+}
+
+.react-datepicker__day--disabled {
+    color: var(--neptune-text-muted) !important;
+    opacity: 0.3;
+}
+
+/* Navigation arrows */
+.react-datepicker__navigation {
+    top: 12px !important;
+}
+
+.react-datepicker__navigation-icon::before {
+    border-color: var(--neptune-primary) !important;
+}
+
+.react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
+    border-color: var(--neptune-secondary) !important;
+}
