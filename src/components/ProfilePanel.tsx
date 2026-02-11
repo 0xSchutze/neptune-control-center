@@ -889,7 +889,7 @@ const ProfilePanel = memo(({ onClose }: ProfilePanelProps) => {
                             ) : (
                                 <Bot className="w-4 h-4" />
                             )}
-                            Export for AI Assistant
+                            Export your Context for External LLM
                         </button>
                     </div>
                 </div>
@@ -1016,7 +1016,7 @@ const ProfilePanel = memo(({ onClose }: ProfilePanelProps) => {
 
                         {/* Message */}
                         <p className="text-center text-[var(--neptune-text-secondary)] mb-3">
-                            Your data has been exported for AI Assistant (last 14 days of logs).
+                            Your context has been exported for External LLM (last 14 days of logs).
                         </p>
 
                         {/* File Path */}
