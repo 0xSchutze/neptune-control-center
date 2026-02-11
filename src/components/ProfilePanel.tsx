@@ -2,7 +2,7 @@
 import { useState, useEffect, memo, useCallback, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, X, Plus, Trash2, Save, Loader2, BookOpen, Target, Camera, Award, Star, Flame, Trophy, Clock, AlertTriangle, Coins, Bug, DollarSign, Zap, Download, Upload, RefreshCcw } from 'lucide-react';
+import { User, X, Plus, Trash2, Save, Loader2, BookOpen, Target, Camera, Award, Star, Flame, Trophy, Clock, AlertTriangle, Coins, Bug, DollarSign, Zap, Download, Upload, RefreshCcw, Bot } from 'lucide-react';
 import { UserProfile } from '@/types/userProfile';
 import '@/types/electron';
 import './neptune/neptune-design.css';
@@ -395,6 +395,41 @@ const ProfilePanel = memo(({ onClose }: ProfilePanelProps) => {
         }
         setShowNLMSuccessModal(false);
     }, [nlmExportPath]);
+
+    // Export for AI Assistant
+    const [exportingAI, setExportingAI] = useState(false);
+    const [showAISuccessModal, setShowAISuccessModal] = useState(false);
+    const [aiExportPath, setAiExportPath] = useState('');
+
+    const handleExportAIAssistant = useCallback(async () => {
+        if (!window.electronAPI?.exportAIAssistant) {
+            toast.error('AI Assistant export not available');
+            return;
+        }
+
+        setExportingAI(true);
+        try {
+            const result = await window.electronAPI.exportAIAssistant();
+            if (result.success && result.path) {
+                setAiExportPath(result.path);
+                setShowAISuccessModal(true);
+            } else {
+                toast.error(result.error || 'Export failed');
+            }
+        } catch (error) {
+            console.error('AI Assistant export error:', error);
+            toast.error('Export failed');
+        } finally {
+            setExportingAI(false);
+        }
+    }, []);
+
+    const handleOpenAIFolder = useCallback(async () => {
+        if (aiExportPath && window.electronAPI?.showItemInFolder) {
+            await window.electronAPI.showItemInFolder(aiExportPath);
+        }
+        setShowAISuccessModal(false);
+    }, [aiExportPath]);
 
     // Close on escape
     useEffect(() => {
@@ -842,6 +877,20 @@ const ProfilePanel = memo(({ onClose }: ProfilePanelProps) => {
                             )}
                             Export for NotebookLM
                         </button>
+
+                        {/* AI Assistant Export */}
+                        <button
+                            onClick={handleExportAIAssistant}
+                            disabled={exportingAI}
+                            className="w-full mt-2 py-2 px-3 text-sm font-medium rounded-lg transition-all duration-300 flex items-center justify-center gap-2 bg-[rgba(6,182,212,0.1)] hover:bg-[rgba(6,182,212,0.2)] border border-[rgba(6,182,212,0.2)] hover:border-[rgba(6,182,212,0.3)] text-cyan-400 disabled:opacity-50"
+                        >
+                            {exportingAI ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Bot className="w-4 h-4" />
+                            )}
+                            Export for AI Assistant
+                        </button>
                     </div>
                 </div>
             </motion.div >
@@ -938,6 +987,55 @@ const ProfilePanel = memo(({ onClose }: ProfilePanelProps) => {
                             <button
                                 onClick={handleOpenNLMFolder}
                                 className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-purple-500 to-violet-500 hover:opacity-90 text-white font-semibold transition-all flex items-center justify-center gap-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                Open Folder
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* AI Assistant Export Success Modal */}
+            {showAISuccessModal && (
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="w-full max-w-md p-6 rounded-2xl bg-[var(--neptune-glass)] border border-cyan-500/30 shadow-xl"
+                    >
+                        {/* Success Icon */}
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                            <Bot className="w-8 h-8 text-cyan-400" />
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-xl font-display font-bold text-center text-cyan-400 mb-2">
+                            Export Complete!
+                        </h3>
+
+                        {/* Message */}
+                        <p className="text-center text-[var(--neptune-text-secondary)] mb-3">
+                            Your data has been exported for AI Assistant (last 14 days of logs).
+                        </p>
+
+                        {/* File Path */}
+                        <div className="p-3 rounded-lg bg-[rgba(0,0,0,0.3)] mb-6 overflow-hidden">
+                            <p className="text-xs text-[var(--neptune-text-muted)] mb-1">File location:</p>
+                            <p className="text-sm text-cyan-300 font-mono truncate">{aiExportPath}</p>
+                        </div>
+
+                        {/* Buttons */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowAISuccessModal(false)}
+                                className="flex-1 py-3 px-4 rounded-xl bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] text-[var(--neptune-text-secondary)] font-medium transition-all"
+                            >
+                                OK
+                            </button>
+                            <button
+                                onClick={handleOpenAIFolder}
+                                className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-500 hover:opacity-90 text-white font-semibold transition-all flex items-center justify-center gap-2"
                             >
                                 <Download className="w-4 h-4" />
                                 Open Folder

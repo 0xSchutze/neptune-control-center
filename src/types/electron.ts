@@ -28,6 +28,7 @@ export interface ElectronAPI {
     exportAllData?: () => Promise<{ success: boolean; canceled?: boolean; path?: string; error?: string }>;
     importAllData?: () => Promise<{ success: boolean; canceled?: boolean; needsRestart?: boolean; error?: string }>;
     exportNotebookLM?: () => Promise<{ success: boolean; path?: string; error?: string }>;
+    exportAIAssistant?: () => Promise<{ success: boolean; path?: string; error?: string }>;
 
     // App Control
     restartApp?: () => Promise<void>;

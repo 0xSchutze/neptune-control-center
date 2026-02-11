@@ -602,6 +602,153 @@ const setupIpcHandlers = () => {
     }
   });
 
+  // Export for AI Assistant (last 14 days of dailyLogs only)
+  ipcMain.handle('export-ai-assistant', async () => {
+    try {
+      const documentsPath = app.getPath('documents');
+      const exportDir = path.join(documentsPath, 'NeptuneExport');
+
+      if (!fsSync.existsSync(exportDir)) {
+        fsSync.mkdirSync(exportDir, { recursive: true });
+      }
+
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        exportType: 'AI Assistant Context Export',
+        summary: {
+          totalLogDays: 0,
+          dateRange: '',
+          totalStudyHours: 0,
+          totalGoals: 0,
+          completedGoals: 0,
+          totalBounties: 0,
+          totalNotes: 0,
+          totalSnippets: 0,
+          totalEarnings: 0
+        },
+        dailyLogs: [],
+        bounties: [],
+        goals: [],
+        notes: [],
+        snippets: [],
+        wallet: null,
+        aiReviews: null,
+        progress: null,
+        achievements: null
+      };
+
+      // Read BasicLogs.json (dailyLogs) — ONLY LAST 14 DAYS
+      const logsPath = path.join(dataDir, 'BasicLogs.json');
+      if (fsSync.existsSync(logsPath)) {
+        const logsData = JSON.parse(fsSync.readFileSync(logsPath, 'utf-8'));
+        const allLogs = logsData.dailyLogs || [];
+
+        // Filter to last 14 days
+        const fourteenDaysAgo = new Date();
+        fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+        const cutoffDate = fourteenDaysAgo.toISOString().split('T')[0];
+
+        exportData.dailyLogs = allLogs.filter(log => log.date >= cutoffDate);
+      }
+
+      // Read bounties folder
+      const bountiesDir = path.join(dataDir, 'bounties');
+      if (fsSync.existsSync(bountiesDir)) {
+        const files = fsSync.readdirSync(bountiesDir).filter(f => f.endsWith('.json'));
+        for (const file of files) {
+          const content = JSON.parse(fsSync.readFileSync(path.join(bountiesDir, file), 'utf-8'));
+          exportData.bounties.push(content);
+        }
+      }
+
+      // Read goals folder
+      const goalsDir = path.join(dataDir, 'goals');
+      if (fsSync.existsSync(goalsDir)) {
+        const files = fsSync.readdirSync(goalsDir).filter(f => f.endsWith('.json'));
+        for (const file of files) {
+          const content = JSON.parse(fsSync.readFileSync(path.join(goalsDir, file), 'utf-8'));
+          exportData.goals.push(content);
+        }
+      }
+
+      // Read notes folder
+      const notesDir = path.join(dataDir, 'notes');
+      if (fsSync.existsSync(notesDir)) {
+        const files = fsSync.readdirSync(notesDir).filter(f => f.endsWith('.json'));
+        for (const file of files) {
+          const content = JSON.parse(fsSync.readFileSync(path.join(notesDir, file), 'utf-8'));
+          exportData.notes.push(content);
+        }
+      }
+
+      // Read snippets folder
+      const snippetsDir = path.join(dataDir, 'snippets');
+      if (fsSync.existsSync(snippetsDir)) {
+        const files = fsSync.readdirSync(snippetsDir).filter(f => f.endsWith('.json'));
+        for (const file of files) {
+          const content = JSON.parse(fsSync.readFileSync(path.join(snippetsDir, file), 'utf-8'));
+          exportData.snippets.push(content);
+        }
+      }
+
+      // Read wallet
+      const walletPath = path.join(dataDir, 'wallet', 'wallet.json');
+      if (fsSync.existsSync(walletPath)) {
+        exportData.wallet = JSON.parse(fsSync.readFileSync(walletPath, 'utf-8'));
+      }
+
+      // Read AIReviews.json
+      const aiReviewsPath = path.join(dataDir, 'AIReviews.json');
+      if (fsSync.existsSync(aiReviewsPath)) {
+        exportData.aiReviews = JSON.parse(fsSync.readFileSync(aiReviewsPath, 'utf-8'));
+      }
+
+      // Read progress.json
+      const progressPath = path.join(dataDir, 'progress.json');
+      if (fsSync.existsSync(progressPath)) {
+        exportData.progress = JSON.parse(fsSync.readFileSync(progressPath, 'utf-8'));
+      }
+
+      // Read achievements.json
+      const achievementsPath = path.join(dataDir, 'achievements.json');
+      if (fsSync.existsSync(achievementsPath)) {
+        exportData.achievements = JSON.parse(fsSync.readFileSync(achievementsPath, 'utf-8'));
+      }
+
+      // Calculate summary
+      if (exportData.dailyLogs.length > 0) {
+        exportData.summary.totalLogDays = exportData.dailyLogs.length;
+        const dates = exportData.dailyLogs.map(log => log.date).sort();
+        exportData.summary.dateRange = `${dates[0]} - ${dates[dates.length - 1]}`;
+        exportData.summary.totalStudyHours = exportData.dailyLogs.reduce(
+          (sum, log) => sum + (log.hours || 0), 0
+        );
+      }
+
+      exportData.summary.totalGoals = exportData.goals.length;
+      exportData.summary.completedGoals = exportData.goals.filter(g => g.status === 'completed').length;
+      exportData.summary.totalBounties = exportData.bounties.length;
+      exportData.summary.totalNotes = exportData.notes.length;
+      exportData.summary.totalSnippets = exportData.snippets.length;
+
+      if (exportData.progress?.earnings) {
+        exportData.summary.totalEarnings = exportData.progress.earnings;
+      } else if (exportData.wallet?.balance) {
+        exportData.summary.totalEarnings = exportData.wallet.balance;
+      }
+
+      // Write to export file
+      const exportPath = path.join(exportDir, 'neptune_ai_context.json');
+      fsSync.writeFileSync(exportPath, JSON.stringify(exportData, null, 2), 'utf-8');
+
+      console.log('[Export] AI Assistant export completed:', exportPath);
+      return { success: true, path: exportPath };
+    } catch (error) {
+      console.error('[Export] AI Assistant export error:', error);
+      return { success: false, error: error.message };
+    }
+  });
+
   // Data Export - Export entire data folder as ZIP file
   ipcMain.handle('export-all-data', async () => {
     try {

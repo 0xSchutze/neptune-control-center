@@ -33,6 +33,7 @@ window.electronAPI = {
   exportAllData: () => ipcRenderer.invoke('export-all-data'),
   importAllData: () => ipcRenderer.invoke('import-all-data'),
   exportNotebookLM: () => ipcRenderer.invoke('export-notebooklm'),
+  exportAIAssistant: () => ipcRenderer.invoke('export-ai-assistant'),
 
   // App Control
   restartApp: () => ipcRenderer.invoke('restart-app')
