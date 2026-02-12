@@ -36,5 +36,12 @@ window.electronAPI = {
   exportAIAssistant: () => ipcRenderer.invoke('export-ai-assistant'),
 
   // App Control
-  restartApp: () => ipcRenderer.invoke('restart-app')
+  restartApp: () => ipcRenderer.invoke('restart-app'),
+
+  // Background resource management
+  onAppVisibility: (callback) => {
+    ipcRenderer.on('app-visibility', (event, data) => callback(data));
+    // Return cleanup function
+    return () => ipcRenderer.removeAllListeners('app-visibility');
+  }
 };

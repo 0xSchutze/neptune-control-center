@@ -3,6 +3,7 @@ import { TabId } from '@/components/TabNavigation';
 import { useProgress } from '@/hooks/useProgress';
 import { useRoadmap } from '@/hooks/useRoadmap';
 import { NeptuneAppShell } from '@/components/neptune';
+import { useNeptuneStore } from '@/components/neptune/Store';
 import { initializeReminders } from '@/services/ReminderService';
 import { loadAchievements } from '@/services/AchievementService';
 import '@/types/electron';
@@ -119,6 +120,13 @@ const Index = () => {
                 const result = await window.electronAPI.readFile('settings.json');
                 if (result.success && result.data) {
                     setApiKey(result.data.apiKey || '');
+                    // Load persisted UI settings
+                    if (typeof result.data.is2DMode === 'boolean') {
+                        useNeptuneStore.getState().set2DMode(result.data.is2DMode);
+                    }
+                    if (typeof result.data.blurEnabled === 'boolean') {
+                        useNeptuneStore.getState().setBlurEnabled(result.data.blurEnabled);
+                    }
                 }
             }
         };

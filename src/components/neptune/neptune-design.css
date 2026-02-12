@@ -37,6 +37,11 @@
     --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
 }
 
+/* --- 2D MODE BACKGROUND --- */
+.neptune-2d-bg {
+    background: #050510;
+}
+
 /* --- ANIMATIONS --- */
 
 @keyframes spin-reverse {

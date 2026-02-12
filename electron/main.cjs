@@ -13,15 +13,13 @@ const AdmZip = require('adm-zip');
 // Performance Optimizations
 app.commandLine.appendSwitch('enable-accelerated-2d-canvas');
 app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy'); // GPU texture sharing - reduces memory copies
 
 // RAM Management (for heavy 3D scenes)
-app.commandLine.appendSwitch('js-flags', '--max-old-space-size=4096');
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=2048');
 
 // WebGL and 3D Performance
 app.commandLine.appendSwitch('enable-features', 'V8VmFuture,WebUIDarkMode');
-
-// Disable background throttling (so 3D scenes don't freeze when tab is in background)
-app.commandLine.appendSwitch('disable-renderer-backgrounding');
 
 // Linux sandbox fix - prevents permission errors on AppImage/deb
 if (process.platform === 'linux') {
@@ -854,15 +852,72 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false, // For production build local file access
+      backgroundThrottling: true, // Throttle when in background to save resources
       preload: path.join(__dirname, 'preload.js')
     },
     icon: path.join(__dirname, 'icon.png')
   });
 
+  // ── Background Resource Management ──
+  // Notify renderer when app goes to background/foreground
+  // so 3D scene can pause/resume to save CPU & GPU
+  mainWindow.on('blur', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('app-visibility', { visible: false, minimized: mainWindow.isMinimized() });
+    }
+  });
+
+  mainWindow.on('focus', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('app-visibility', { visible: true, minimized: false });
+    }
+  });
+
+  mainWindow.on('minimize', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // Reduce frame rate to minimum when minimized
+      mainWindow.webContents.setFrameRate(1);
+      mainWindow.webContents.send('app-visibility', { visible: false, minimized: true });
+    }
+  });
+
+  mainWindow.on('restore', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      // Restore normal frame rate
+      mainWindow.webContents.setFrameRate(60);
+      mainWindow.webContents.send('app-visibility', { visible: true, minimized: false });
+    }
+  });
+
   // Maximize and show when ready
+  let windowShown = false;
   mainWindow.once('ready-to-show', () => {
-    mainWindow.maximize();
-    mainWindow.show();
+    if (!windowShown) {
+      windowShown = true;
+      mainWindow.maximize();
+      mainWindow.show();
+    }
+  });
+
+  // Fallback: force show window after 10 seconds if ready-to-show didn't fire
+  // This prevents the window from staying invisible when WebGL/3D content fails to load
+  setTimeout(() => {
+    if (!windowShown && mainWindow && !mainWindow.isDestroyed()) {
+      windowShown = true;
+      console.warn('[Window] Fallback: ready-to-show did not fire in 10s, forcing window display');
+      mainWindow.maximize();
+      mainWindow.show();
+    }
+  }, 10000);
+
+  // Log renderer process crashes
+  mainWindow.webContents.on('render-process-gone', (event, details) => {
+    console.error('[Crash] Renderer process gone:', details.reason, details.exitCode);
+  });
+
+  // Log page failures
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+    console.error('[Load] Failed to load:', validatedURL, errorCode, errorDescription);
   });
 
   const win = mainWindow; // Keep backward compatibility
@@ -903,7 +958,20 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
+  if (process.platform !== 'darwin') {
+    // Release single instance lock before quitting
+    app.releaseSingleInstanceLock();
+    app.quit();
+  }
+});
+
+// Force exit if quit gets stuck (zombie process prevention)
+app.on('will-quit', (event) => {
+  // Safety net: force kill after 5 seconds if process hangs
+  setTimeout(() => {
+    console.warn('[App] Force exit - quit was stuck');
+    process.exit(0);
+  }, 5000).unref(); // unref() so it doesn't keep the process alive
 });
 
 app.on('activate', () => {

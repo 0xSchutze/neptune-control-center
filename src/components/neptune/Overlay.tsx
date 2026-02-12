@@ -205,6 +205,7 @@ const GlassModal = memo(({ children, onOpenSettings, onNavigateTab }: { children
     const closeModal = useNeptuneStore(state => state.closeModal);
     const activeTabIndex = useNeptuneStore(state => state.activeTabIndex);
     const blurEnabled = useNeptuneStore(state => state.blurEnabled);
+    const is2DMode = useNeptuneStore(state => state.is2DMode);
     const currentTab = TABS[activeTabIndex];
 
     // Profile panel state
@@ -234,24 +235,30 @@ const GlassModal = memo(({ children, onOpenSettings, onNavigateTab }: { children
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isModalOpen) closeModal();
+            if (e.key === 'Escape' && isModalOpen && !is2DMode) closeModal();
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isModalOpen, closeModal]);
+    }, [isModalOpen, closeModal, is2DMode]);
+
+    // In 2D mode: always show modal
+    const shouldShow = is2DMode || isModalOpen;
 
     return (
         <AnimatePresence>
-            {isModalOpen && (
+            {shouldShow && (
                 <>
-                    {/* Dark Matter Backdrop */}
+                    {/* Dark Matter Backdrop - animated gradient in 2D mode */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         transition={{ duration: 0.4 }}
-                        onClick={handleBackdropClick}
-                        className="fixed inset-0 z-40 bg-[var(--neptune-void-bg)]/90"
+                        onClick={is2DMode ? undefined : handleBackdropClick}
+                        className={`fixed inset-0 z-40 ${is2DMode
+                                ? 'neptune-2d-bg'
+                                : 'bg-[var(--neptune-void-bg)]/90'
+                            }`}
                     />
 
                     {/* Holographic Projector Container */}
@@ -270,13 +277,14 @@ const GlassModal = memo(({ children, onOpenSettings, onNavigateTab }: { children
                                 transition: { duration: 0.15 }
                             }
                         }}
-                        className="fixed inset-4 md:inset-10 lg:inset-20 z-50 flex flex-col pointer-events-none"
+                        className={`fixed z-50 flex flex-col pointer-events-none ${is2DMode ? 'inset-3' : 'inset-4 md:inset-10 lg:inset-20'
+                            }`}
                     >
                         {/* The Actual Panel (Pointer events re-enabled) */}
                         <div className={`
                             neptune-glass-panel pointer-events-auto
-                            w-full h-full rounded-2xl overflow-hidden
-                            flex flex-col relative
+                            w-full h-full overflow-hidden
+                            flex flex-col relative rounded-2xl
                             ${!blurEnabled ? 'no-blur' : ''}
                         `}>
                             {/* HUD Scanline Overlay */}
@@ -291,7 +299,13 @@ const GlassModal = memo(({ children, onOpenSettings, onNavigateTab }: { children
                                 <div className="flex items-center gap-4">
                                     <div className="w-1 h-8 bg-[var(--neptune-primary)] rounded-full shadow-[0_0_10px_var(--neptune-primary)]" />
                                     <div>
-                                        <h2 className="text-[var(--neptune-text-primary)] text-xl font-display tracking-widest uppercase">
+                                        <h2 className="text-[var(--neptune-text-primary)] text-xl font-display tracking-widest uppercase flex items-center gap-3">
+                                            {is2DMode && (
+                                                <span className="text-[var(--neptune-primary)] text-sm tracking-[0.3em] opacity-60">NEPTUNE</span>
+                                            )}
+                                            {is2DMode && (
+                                                <span className="w-px h-5 bg-[var(--neptune-primary)] opacity-30" />
+                                            )}
                                             {currentTab.name}
                                         </h2>
                                         <div className="flex items-center gap-2">
@@ -320,18 +334,20 @@ const GlassModal = memo(({ children, onOpenSettings, onNavigateTab }: { children
                                     >
                                         <Settings size={20} />
                                     </button>
-                                    {/* Minimize Button */}
-                                    <button
-                                        onClick={closeModal}
-                                        className="
+                                    {/* Minimize Button - hidden in 2D mode */}
+                                    {!is2DMode && (
+                                        <button
+                                            onClick={closeModal}
+                                            className="
                                             p-2 rounded-lg text-[var(--neptune-text-secondary)]
                                             hover:bg-[rgba(0,180,216,0.1)] hover:text-[var(--neptune-primary)]
                                             transition-all duration-300
                                         "
-                                        title="Return to Orbit"
-                                    >
-                                        <Minimize2 size={20} />
-                                    </button>
+                                            title="Return to Orbit"
+                                        >
+                                            <Minimize2 size={20} />
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Profile Panel */}
@@ -340,8 +356,19 @@ const GlassModal = memo(({ children, onOpenSettings, onNavigateTab }: { children
                                 </AnimatePresence>
                             </div>
 
-                            {/* Main Scrollable Content - OPTIMIZED with containment */}
-                            <ScrollableContent children={children} />
+                            {/* Main Scrollable Content - with tab transition in 2D mode */}
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={activeTabIndex}
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -20 }}
+                                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                                    className="flex-1 min-h-0"
+                                >
+                                    <ScrollableContent children={children} />
+                                </motion.div>
+                            </AnimatePresence>
 
                             {/* Footer Status Bar */}
                             <div className="
@@ -517,6 +544,7 @@ interface NeptuneOverlayProps {
 
 export default function NeptuneOverlay({ children }: NeptuneOverlayProps) {
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const is2DMode = useNeptuneStore(state => state.is2DMode);
 
     const handleOpenSettings = useCallback(() => {
         setIsSettingsOpen(true);
@@ -539,16 +567,18 @@ export default function NeptuneOverlay({ children }: NeptuneOverlayProps) {
 
     return (
         <>
-            {/* Title HUD */}
-            <div className="fixed top-8 left-1/2 -translate-x-1/2 z-30 text-center pointer-events-none mix-blend-screen">
-                <h1 className="text-[var(--neptune-text-primary)] text-sm font-display tracking-[0.5em] drop-shadow-[0_0_10px_rgba(0,180,216,0.5)]">
-                    NEPTUNE
-                </h1>
-                <div className="w-24 h-px bg-gradient-to-r from-transparent via-[var(--neptune-primary)] to-transparent mx-auto mt-2 opacity-50" />
-            </div>
+            {/* Title HUD - only in 3D mode */}
+            {!is2DMode && (
+                <div className="fixed top-8 left-1/2 -translate-x-1/2 z-30 text-center pointer-events-none mix-blend-screen">
+                    <h1 className="text-[var(--neptune-text-primary)] text-sm font-display tracking-[0.5em] drop-shadow-[0_0_10px_rgba(0,180,216,0.5)]">
+                        NEPTUNE
+                    </h1>
+                    <div className="w-24 h-px bg-gradient-to-r from-transparent via-[var(--neptune-primary)] to-transparent mx-auto mt-2 opacity-50" />
+                </div>
+            )}
 
-            <CornerDecorations />
-            <NavigationArrows />
+            {!is2DMode && <CornerDecorations />}
+            {!is2DMode && <NavigationArrows />}
             <StealthSidebar />
             <GlassModal onOpenSettings={handleOpenSettings} onNavigateTab={handleNavigateTab}>
                 {/* Settings Panel inside modal content area */}

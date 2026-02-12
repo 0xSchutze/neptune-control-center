@@ -17,7 +17,7 @@ interface NeptuneAppShellProps {
  * Combines the 3D scene with UI overlay
  */
 export function NeptuneAppShell({ activeTab, onTabChange, children }: NeptuneAppShellProps) {
-    const { activeTabIndex } = useNeptuneStore();
+    const { activeTabIndex, is2DMode } = useNeptuneStore();
 
     // Get current tab from index
     const storeTab = TABS[activeTabIndex].id as TabId;
@@ -30,9 +30,10 @@ export function NeptuneAppShell({ activeTab, onTabChange, children }: NeptuneApp
     }, [storeTab, activeTab, onTabChange]);
 
     return (
-        <div className="relative min-h-screen bg-[#050510] overflow-hidden">
-            {/* 3D Scene Background */}
-            <NeptuneScene />
+        <div className={`relative min-h-screen overflow-hidden ${is2DMode ? 'neptune-2d-bg' : 'bg-[#050510]'
+            }`}>
+            {/* 3D Scene Background - only in 3D mode */}
+            {!is2DMode && <NeptuneScene />}
 
             {/* UI Overlay */}
             <NeptuneOverlay>

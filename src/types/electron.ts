@@ -32,6 +32,9 @@ export interface ElectronAPI {
 
     // App Control
     restartApp?: () => Promise<void>;
+
+    // Background resource management
+    onAppVisibility?: (callback: (data: { visible: boolean; minimized: boolean }) => void) => () => void;
 }
 
 declare global {

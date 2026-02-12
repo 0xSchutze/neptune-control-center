@@ -334,6 +334,8 @@ export const SettingsPanel = ({
           <div className="space-y-4">
             {/* Blur Toggle */}
             <PerformanceBlurToggle />
+            {/* 2D Mode Toggle */}
+            <Performance2DToggle />
           </div>
         </motion.div>
 
@@ -405,5 +407,123 @@ const PerformanceBlurToggle = () => {
         </p>
       </div>
     </div>
+  );
+};
+
+// Performance 2D Mode Toggle Sub-component with Transition Screen
+const Performance2DToggle = () => {
+  const is2DMode = useNeptuneStore(state => state.is2DMode);
+  const set2DMode = useNeptuneStore(state => state.set2DMode);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [transitionTarget, setTransitionTarget] = useState<'2D' | '3D'>('2D');
+
+  // Load is2DMode from settings.json on mount
+  useEffect(() => {
+    const loadSetting = async () => {
+      if (window.electronAPI?.readFile) {
+        const result = await window.electronAPI.readFile('settings.json');
+        if (result.success && result.data && typeof result.data.is2DMode === 'boolean') {
+          set2DMode(result.data.is2DMode);
+        }
+      }
+    };
+    loadSetting();
+  }, [set2DMode]);
+
+  // Handle toggle with transition screen
+  const handleToggle = async () => {
+    const newValue = !is2DMode;
+    setTransitionTarget(newValue ? '2D' : '3D');
+    setIsTransitioning(true);
+
+    // Save to settings.json first
+    if (window.electronAPI?.saveFile && window.electronAPI?.readFile) {
+      const result = await window.electronAPI.readFile('settings.json');
+      const existingSettings = result.success && result.data ? result.data : {};
+      await window.electronAPI.saveFile('settings.json', { ...existingSettings, is2DMode: newValue });
+    }
+
+    // Wait for transition animation, then reload
+    setTimeout(() => {
+      window.location.reload();
+    }, 1800);
+  };
+
+  return (
+    <>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between p-3 rounded-lg bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.05)]">
+          <div>
+            <p className="text-sm font-medium text-[var(--neptune-text-primary)]">2D Mode</p>
+            <p className="text-[10px] font-mono text-[var(--neptune-text-muted)]">Skip 3D scene, fullscreen interface</p>
+          </div>
+          <button
+            onClick={handleToggle}
+            disabled={isTransitioning}
+            className={`relative w-12 h-6 rounded-full transition-all duration-300 ${is2DMode
+              ? 'bg-[var(--neptune-primary)]'
+              : 'bg-[rgba(255,255,255,0.1)]'
+              }`}
+          >
+            <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 ${is2DMode ? 'translate-x-6' : 'translate-x-0'
+              }`} />
+          </button>
+        </div>
+
+        <div className="flex items-start gap-2 p-2 rounded-lg bg-blue-500/5 border border-blue-500/20">
+          <Info className="w-4 h-4 text-blue-400 mt-0.5 flex-shrink-0" />
+          <p className="text-[10px] font-mono text-blue-400/80 leading-relaxed">
+            Enables lightweight mode without the 3D Neptune scene. Faster startup, lower resource usage.
+          </p>
+        </div>
+      </div>
+
+      {/* Mode Transition Overlay */}
+      <AnimatePresence>
+        {isTransitioning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
+            style={{ background: 'radial-gradient(ellipse at center, #0a1628 0%, #050510 50%, #030407 100%)' }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.6 }}
+              className="relative z-10 text-center"
+            >
+              <p className="text-[var(--neptune-primary)] text-xs tracking-[0.5em] font-mono uppercase mb-4 opacity-60">
+                NEPTUNE
+              </p>
+              <h2 className="text-[var(--neptune-text-primary)] text-2xl font-display tracking-[0.3em] uppercase mb-6">
+                {transitionTarget === '2D' ? 'ENTERING 2D MODE' : 'ENTERING 3D MODE'}
+              </h2>
+
+              {/* Loading bar */}
+              <div className="w-48 h-0.5 mx-auto bg-[rgba(255,255,255,0.1)] rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: '0%' }}
+                  animate={{ width: '100%' }}
+                  transition={{ duration: 1.5, ease: 'easeInOut' }}
+                  className="h-full bg-gradient-to-r from-[var(--neptune-primary)] to-[var(--neptune-secondary)] rounded-full"
+                  style={{ boxShadow: '0 0 10px var(--neptune-primary)' }}
+                />
+              </div>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-[var(--neptune-text-muted)] text-[10px] font-mono tracking-widest mt-4 uppercase"
+              >
+                {transitionTarget === '2D' ? 'Disabling 3D renderer...' : 'Initializing 3D scene...'}
+              </motion.p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 };

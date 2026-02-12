@@ -37,6 +37,8 @@ interface NeptuneState {
     blurEnabled: boolean;
     // Scroll performance - throttle 3D render during scroll
     isScrolling: boolean;
+    // 2D Mode - skip 3D scene, show modal fullscreen
+    is2DMode: boolean;
 
     // Actions
     setActiveTabIndex: (index: number) => void;
@@ -50,6 +52,7 @@ interface NeptuneState {
     setHasInteractedWithArrows: (interacted: boolean) => void;
     setBlurEnabled: (enabled: boolean) => void;
     setIsScrolling: (scrolling: boolean) => void;
+    set2DMode: (enabled: boolean) => void;
 
     // Computed helpers
     getActiveTab: () => typeof TABS[number];
@@ -65,6 +68,7 @@ export const useNeptuneStore = create<NeptuneState>((set, get) => ({
     isFirstNavigation: true, // First press just shows button, doesn't increment
     blurEnabled: true, // Glassmorphism blur enabled by default
     isScrolling: false, // For 3D render throttling during scroll
+    is2DMode: false, // 3D mode by default
 
     setActiveTabIndex: (index) => set({
         activeTabIndex: ((index % TAB_COUNT) + TAB_COUNT) % TAB_COUNT
@@ -119,6 +123,17 @@ export const useNeptuneStore = create<NeptuneState>((set, get) => ({
     setBlurEnabled: (enabled) => set({ blurEnabled: enabled }),
 
     setIsScrolling: (scrolling) => set({ isScrolling: scrolling }),
+
+    set2DMode: (enabled) => set({
+        is2DMode: enabled,
+        // In 2D mode: modal always open, intro complete, first nav done
+        ...(enabled ? {
+            isModalOpen: true,
+            isIntroComplete: true,
+            isFirstNavigation: false,
+            viewState: 'FOCUS' as ViewState,
+        } : {}),
+    }),
 
     // Computed helpers
     getActiveTab: () => TABS[get().activeTabIndex],

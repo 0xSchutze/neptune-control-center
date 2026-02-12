@@ -1472,6 +1472,17 @@ export function NeptuneScene() {
     const [fadeOpacity, setFadeOpacity] = useState(1); // CSS overlay - needs to be state
     const [introComplete, setIntroComplete] = useState(false);
 
+    // Background resource management - pause 3D when app is not visible
+    const [isAppVisible, setIsAppVisible] = useState(true);
+
+    useEffect(() => {
+        // Listen for visibility changes from Electron main process
+        const cleanup = window.electronAPI?.onAppVisibility?.(({ visible, minimized }) => {
+            setIsAppVisible(visible && !minimized);
+        });
+        return () => { cleanup?.(); };
+    }, []);
+
     // PERFORMANCE: All intro animation values in a single ref - NO RE-RENDERS!
     // GSAP directly mutates this ref, AnimatedSceneContent reads from it in useFrame
     const introAnimRef = useRef<IntroAnimValues>({
@@ -1832,6 +1843,7 @@ export function NeptuneScene() {
                     depth: true,
                 }}
                 dpr={[1, 2]}
+                frameloop={isAppVisible ? 'always' : 'demand'}
                 onCreated={({ gl }) => {
                     gl.toneMapping = THREE.ACESFilmicToneMapping;
                     gl.toneMappingExposure = CONFIG.film.exposure;
