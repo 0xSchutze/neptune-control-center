@@ -177,29 +177,40 @@ const SmartTimer = ({ onSessionComplete, bounties = [], goals = [], notes = [], 
           if (stored) savedSession = JSON.parse(stored);
         }
         if (savedSession && savedSession.status === 'running') {
-          const now = new Date();
+          const now = Date.now();
           const savedStart = new Date(savedSession.startTime);
-          const diff = Math.floor((now.getTime() - savedStart.getTime()) / 1000);
+          // FIX: Only add the gap time since last save, not total time since start
+          const lastSaved = savedSession.lastSavedAt || now;
+          const gapSeconds = Math.max(0, Math.floor((now - lastSaved) / 1000));
           setStartTime(savedStart);
-          setElapsedTime(savedSession.elapsedTime + diff);
+          setElapsedTime((savedSession.elapsedTime || 0) + gapSeconds);
+          setBreakTime(savedSession.breakTime || 0);
           setIsRunning(true);
+          setIsOnBreak(savedSession.isOnBreak || false);
           setBreaks(savedSession.breaks || []);
-          toast.info('⏱️ Session restored');
         }
       } catch (error) { console.error(error); }
     };
     loadSession();
   }, []);
 
+  // Throttled save: persist session every 5 seconds (not every tick)
+  const lastSaveRef = useRef<number>(0);
   useEffect(() => {
-    if (startTime) {
+    if (startTime && isRunning) {
+      const now = Date.now();
+      if (now - lastSaveRef.current < 5000) return; // throttle to 5s
+      lastSaveRef.current = now;
       const session = {
-        startTime, elapsedTime, breaks, status: isRunning ? 'running' : 'paused', lastUpdated: new Date().toISOString()
+        startTime, elapsedTime, breakTime, breaks, isOnBreak,
+        status: 'running',
+        lastSavedAt: now,
+        lastUpdated: new Date().toISOString()
       };
       if (window.electronAPI?.saveFile) window.electronAPI.saveFile(TIMER_SESSION_FILE, session);
       else localStorage.setItem('smartTimerSession', JSON.stringify(session));
     }
-  }, [startTime, elapsedTime, breaks, isRunning]);
+  }, [startTime, elapsedTime, breakTime, breaks, isRunning, isOnBreak]);
 
   useEffect(() => {
     if (isRunning && !isOnBreak) {
@@ -246,19 +257,37 @@ const SmartTimer = ({ onSessionComplete, bounties = [], goals = [], notes = [], 
     }
 
     setIsRunning(false); setIsOnBreak(false);
+    const endTime = new Date();
+
+    // Close any open break
     let finalBreaks = [...breaks];
     if (finalBreaks.length > 0) {
       const last = finalBreaks[finalBreaks.length - 1];
       if (!last.end) {
-        const now = new Date();
-        finalBreaks[finalBreaks.length - 1] = { ...last, end: now, duration: Math.floor((now.getTime() - new Date(last.start).getTime()) / 1000) };
+        finalBreaks[finalBreaks.length - 1] = {
+          ...last, end: endTime,
+          duration: Math.floor((endTime.getTime() - new Date(last.start).getTime()) / 1000)
+        };
         setBreaks(finalBreaks);
       }
     }
-    const endTime = new Date();
+
+    // SANITY CHECK: Derive times from wall-clock so they always add up
+    // wallClock = endTime - startTime (total real seconds)
+    // actualBreakTime = sum of all break durations
+    // actualFocusTime = wallClock - actualBreakTime
+    const wallClockSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
+    const actualBreakTime = finalBreaks.reduce((sum, b) => sum + (b.duration || 0), 0);
+    const actualFocusTime = Math.max(0, wallClockSeconds - actualBreakTime);
+
     const sessionData = {
-      sessionId: `session_${Date.now()}`, startTime: startTime?.toISOString() || new Date().toISOString(),
-      endTime: endTime.toISOString(), totalFocusTime: elapsedTime, totalBreakTime: breakTime, breaks: finalBreaks, breaksCount: finalBreaks.length
+      sessionId: `session_${Date.now()}`,
+      startTime: startTime.toISOString(),
+      endTime: endTime.toISOString(),
+      totalFocusTime: actualFocusTime,
+      totalBreakTime: actualBreakTime,
+      breaks: finalBreaks,
+      breaksCount: finalBreaks.length
     };
     setCurrentSession(sessionData); setShowLogModal(true);
     if (window.electronAPI?.deleteFile) window.electronAPI.deleteFile(TIMER_SESSION_FILE);
