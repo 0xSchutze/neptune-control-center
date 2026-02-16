@@ -839,6 +839,32 @@ const setupIpcHandlers = () => {
       win.webContents.reload();
     }
   });
+
+  // Focus window handler (used by Pomodoro notification clicks)
+  ipcMain.handle('focus-window', async () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  });
+
+  // Show OS notification via main process (reliable on Linux)
+  ipcMain.handle('show-notification', async (event, { title, body }) => {
+    const { Notification: ElectronNotification } = require('electron');
+    if (ElectronNotification.isSupported()) {
+      const notif = new ElectronNotification({ title, body });
+      notif.on('click', () => {
+        if (mainWindow) {
+          if (mainWindow.isMinimized()) mainWindow.restore();
+          mainWindow.show();
+          mainWindow.focus();
+          mainWindow.webContents.send('notification-clicked');
+        }
+      });
+      notif.show();
+    }
+  });
 };
 
 function createWindow() {

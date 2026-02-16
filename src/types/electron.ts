@@ -32,6 +32,9 @@ export interface ElectronAPI {
 
     // App Control
     restartApp?: () => Promise<void>;
+    focusWindow?: () => Promise<void>;
+    showNotification?: (title: string, body: string) => Promise<void>;
+    onNotificationClicked?: (callback: () => void) => () => void;
 
     // Background resource management
     onAppVisibility?: (callback: (data: { visible: boolean; minimized: boolean }) => void) => () => void;

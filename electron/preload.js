@@ -37,6 +37,12 @@ window.electronAPI = {
 
   // App Control
   restartApp: () => ipcRenderer.invoke('restart-app'),
+  focusWindow: () => ipcRenderer.invoke('focus-window'),
+  showNotification: (title, body) => ipcRenderer.invoke('show-notification', { title, body }),
+  onNotificationClicked: (callback) => {
+    ipcRenderer.on('notification-clicked', () => callback());
+    return () => ipcRenderer.removeAllListeners('notification-clicked');
+  },
 
   // Background resource management
   onAppVisibility: (callback) => {
